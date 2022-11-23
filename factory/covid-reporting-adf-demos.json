@@ -1,0 +1,15 @@
+{
+	"name": "covid-reporting-adf-demos",
+	"location": "eastus",
+	"identity": {
+		"type": "SystemAssigned,UserAssigned",
+		"principalId": "c8b8cf24-595a-4a3e-b3dd-62bf91c32ef7",
+		"tenantId": "e0ad2753-12fa-450b-ac8b-fcd18c7ac006",
+		"userAssignedIdentities": {
+			"/subscriptions/3f9e308a-ecf3-402a-bb70-961a81747210/resourcegroups/covid-reporting-rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/blob-access-managed-identity": {
+				"clientId": "da1789f6-c6c8-42a0-8ab8-4a45d0d83a25",
+				"principalId": "16ce3580-3e2e-4091-9ef1-b05a66c3684b"
+			}
+		}
+	}
+}

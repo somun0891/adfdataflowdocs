@@ -1,0 +1,34 @@
+{
+	"name": "ds_az_synapse_db_tables",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ln_az_synapse_db",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"DWTablename": {
+				"type": "string"
+			},
+			"DWSchemaName": {
+				"type": "string"
+			}
+		},
+		"folder": {
+			"name": "demos"
+		},
+		"annotations": [],
+		"type": "AzureSqlDWTable",
+		"schema": [],
+		"typeProperties": {
+			"schema": {
+				"value": "@dataset().DWSchemaName",
+				"type": "Expression"
+			},
+			"table": {
+				"value": "@dataset().DWTablename",
+				"type": "Expression"
+			}
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

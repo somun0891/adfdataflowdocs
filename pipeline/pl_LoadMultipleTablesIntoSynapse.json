@@ -1,0 +1,65 @@
+{
+	"name": "pl_LoadMultipleTablesIntoSynapse",
+	"properties": {
+		"activities": [
+			{
+				"name": "Lkp_tables_to_load",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.01:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "SELECT TABLE_SCHEMA, TABLE_NAME FROM information_schema.TABLES WHERE TABLE_TYPE = 'BASE TABLE' \nand TABLE_SCHEMA = 'covid_reporting'",
+						"queryTimeout": "00:30:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "ds_covid_tables",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "Execute_Copy_Multiple_Tables",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "Lkp_tables_to_load",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "pl_Child_Iterate_And_Copy_SQL_Tables",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"tablelist": {
+							"value": "@activity('Lkp_tables_to_load').output.value",
+							"type": "Expression"
+						}
+					}
+				}
+			}
+		],
+		"folder": {
+			"name": "demos"
+		},
+		"annotations": [],
+		"lastPublishTime": "2022-11-23T15:01:41Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

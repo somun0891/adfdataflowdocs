@@ -1,0 +1,26 @@
+{
+	"name": "ds_covid_tables",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ln_covid_srv",
+			"type": "LinkedServiceReference"
+		},
+		"folder": {
+			"name": "demos"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [],
+		"typeProperties": {
+			"schema": {
+				"value": "dbo",
+				"type": "Expression"
+			},
+			"table": {
+				"value": "dummy",
+				"type": "Expression"
+			}
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

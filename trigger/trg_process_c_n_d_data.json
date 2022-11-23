@@ -1,0 +1,36 @@
+{
+	"name": "trg_process_c_n_d_data",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipeline": {
+			"pipelineReference": {
+				"referenceName": "pl_process_cases_and_deaths_data",
+				"type": "PipelineReference"
+			}
+		},
+		"type": "TumblingWindowTrigger",
+		"typeProperties": {
+			"frequency": "Hour",
+			"interval": 1,
+			"startTime": "2022-11-21T06:00:00Z",
+			"endTime": "2022-11-22T06:00:00Z",
+			"delay": "00:00:00",
+			"maxConcurrency": 50,
+			"retryPolicy": {
+				"intervalInSeconds": 30
+			},
+			"dependsOn": [
+				{
+					"type": "TumblingWindowTriggerDependencyReference",
+					"size": "0.02:00:00",
+					"offset": "-0:01:00:00",
+					"referenceTrigger": {
+						"referenceName": "trg_ingest_cases_death_data",
+						"type": "TriggerReference"
+					}
+				}
+			]
+		}
+	}
+}

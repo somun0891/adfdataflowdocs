@@ -1,0 +1,26 @@
+{
+	"name": "tr_ingest_ECDC_Data",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Day",
+				"interval": 1,
+				"startTime": "2022-11-06T11:06:00",
+				"endTime": "2022-11-10T00:00:00",
+				"timeZone": "India Standard Time",
+				"schedule": {
+					"minutes": [
+						15
+					],
+					"hours": [
+						11
+					]
+				}
+			}
+		}
+	}
+}

@@ -1,0 +1,18 @@
+{
+	"name": "tr_ingest_hosp_adm_data",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Day",
+				"interval": 1,
+				"startTime": "2022-11-05T23:05:00",
+				"endTime": "2022-11-10T23:05:00",
+				"timeZone": "India Standard Time"
+			}
+		}
+	}
+}

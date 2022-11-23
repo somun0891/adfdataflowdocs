@@ -1,0 +1,22 @@
+{
+	"name": "publish_to_adf_publish_branch",
+	"properties": {
+		"activities": [
+			{
+				"name": "WaitFor2mins",
+				"type": "Wait",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"waitTimeInSeconds": 120
+				}
+			}
+		],
+		"folder": {
+			"name": "demos"
+		},
+		"annotations": [],
+		"lastPublishTime": "2022-11-23T15:01:40Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

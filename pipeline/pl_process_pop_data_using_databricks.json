@@ -1,0 +1,33 @@
+{
+	"name": "pl_process_pop_data_using_databricks",
+	"properties": {
+		"activities": [
+			{
+				"name": "Execute Pop Transform",
+				"type": "DatabricksNotebook",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.00:30:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"notebookPath": "/covid/transform_scripts/transform_population_data"
+				},
+				"linkedServiceName": {
+					"referenceName": "ls_db_covid_cluster",
+					"type": "LinkedServiceReference"
+				}
+			}
+		],
+		"folder": {
+			"name": "Process"
+		},
+		"annotations": [],
+		"lastPublishTime": "2022-11-22T03:30:38Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

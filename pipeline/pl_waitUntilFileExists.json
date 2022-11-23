@@ -1,0 +1,256 @@
+{
+	"name": "pl_waitUntilFileExists",
+	"properties": {
+		"activities": [
+			{
+				"name": "UntilFileExists",
+				"description": "Either file Exists or proceed with the pipeline if threshold value is met and file not arrived yet",
+				"type": "Until",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@or(\ngreaterOrEquals(int(variables('Counter')), pipeline().parameters.RetryAttempt)\n,variables('FileExists')\n )",
+						"type": "Expression"
+					},
+					"activities": [
+						{
+							"name": "Get CovidFile MetaData",
+							"type": "GetMetadata",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"dataset": {
+									"referenceName": "ds_CovidFile",
+									"type": "DatasetReference"
+								},
+								"fieldList": [
+									"exists",
+									"size",
+									"itemName",
+									"itemType",
+									"lastModified",
+									"columnCount"
+								],
+								"storeSettings": {
+									"type": "AzureBlobStorageReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							}
+						},
+						{
+							"name": "Wait For File Arrival",
+							"type": "Wait",
+							"dependsOn": [
+								{
+									"activity": "Set FileExists Var",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"waitTimeInSeconds": 5
+							}
+						},
+						{
+							"name": "Set FileExists Var",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "Get CovidFile MetaData",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "FileExists",
+								"value": {
+									"value": "@activity('Get CovidFile MetaData').output.exists",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Incr Counter by One",
+							"description": "Workaround - Use tmpCounter to increment Counter variable by 1 as self referencing counter is not allowed.",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "Wait For File Arrival",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "TmpCounter",
+								"value": {
+									"value": "@string(add(int(variables('Counter')) ,1))",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Set Counter",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "Incr Counter by One",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "Counter",
+								"value": {
+									"value": "@variables('TmpCounter')",
+									"type": "Expression"
+								}
+							}
+						}
+					],
+					"timeout": "0.12:00:00"
+				}
+			},
+			{
+				"name": "ProcessIfFileExists",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "UntilFileExists",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@activity('Get CovidFile MetaData').output.exists",
+						"type": "Expression"
+					},
+					"ifFalseActivities": [
+						{
+							"name": "FailPipelineAfterRetries",
+							"type": "Fail",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"message": {
+									"value": "@concat('File doesn''t exists, retried and failed after ' \r\n,string(pipeline().parameters.RetryAttempt) \r\n,'attempts')",
+									"type": "Expression"
+								},
+								"errorCode": "3002"
+							}
+						}
+					],
+					"ifTrueActivities": [
+						{
+							"name": "CopyCovidFile",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "DelimitedTextSource",
+									"storeSettings": {
+										"type": "AzureBlobStorageReadSettings",
+										"recursive": true,
+										"enablePartitionDiscovery": false
+									},
+									"formatSettings": {
+										"type": "DelimitedTextReadSettings"
+									}
+								},
+								"sink": {
+									"type": "DelimitedTextSink",
+									"storeSettings": {
+										"type": "AzureBlobStorageWriteSettings"
+									},
+									"formatSettings": {
+										"type": "DelimitedTextWriteSettings",
+										"quoteAllText": true,
+										"fileExtension": ".txt"
+									}
+								},
+								"enableStaging": false,
+								"dataIntegrationUnits": 2,
+								"translator": {
+									"type": "TabularTranslator",
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "ds_CovidFile",
+									"type": "DatasetReference"
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "ds_CovidFile_dest",
+									"type": "DatasetReference"
+								}
+							]
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"RetryAttempt": {
+				"type": "int",
+				"defaultValue": 5
+			}
+		},
+		"variables": {
+			"FileExists": {
+				"type": "Boolean",
+				"defaultValue": false
+			},
+			"Counter": {
+				"type": "String",
+				"defaultValue": "0"
+			},
+			"TmpCounter": {
+				"type": "String",
+				"defaultValue": "0"
+			}
+		},
+		"folder": {
+			"name": "demos"
+		},
+		"annotations": [],
+		"lastPublishTime": "2022-11-23T15:01:41Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

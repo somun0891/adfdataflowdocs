@@ -1,0 +1,37 @@
+{
+	"name": "pl_process_hosp_adm_data",
+	"properties": {
+		"activities": [
+			{
+				"name": "df_transform_hosp_adm",
+				"type": "ExecuteDataFlow",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.00:30:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataflow": {
+						"referenceName": "df_hosp_adm",
+						"type": "DataFlowReference"
+					},
+					"compute": {
+						"coreCount": 8,
+						"computeType": "General"
+					},
+					"traceLevel": "Fine"
+				}
+			}
+		],
+		"folder": {
+			"name": "Process"
+		},
+		"annotations": [],
+		"lastPublishTime": "2022-11-22T03:30:39Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

@@ -1,0 +1,31 @@
+{
+	"name": "ds_Watermark",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ln_covid_srv",
+			"type": "LinkedServiceReference"
+		},
+		"folder": {
+			"name": "demos"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "TableName",
+				"type": "varchar"
+			},
+			{
+				"name": "WatermarkValue",
+				"type": "datetime",
+				"precision": 23,
+				"scale": 3
+			}
+		],
+		"typeProperties": {
+			"schema": "dbo",
+			"table": "watermarktable"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

@@ -1,0 +1,254 @@
+{
+	"name": "df_hosp_adm",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "ds_raw_hosp_adm",
+						"type": "DatasetReference"
+					},
+					"name": "HospAdmSource"
+				},
+				{
+					"dataset": {
+						"referenceName": "ds_country_lookup",
+						"type": "DatasetReference"
+					},
+					"name": "CountryLookupSource"
+				},
+				{
+					"dataset": {
+						"referenceName": "ds_dim_date_lookup",
+						"type": "DatasetReference"
+					},
+					"name": "Dimdatesource"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "dsProcessedDailyFile",
+						"type": "DatasetReference"
+					},
+					"name": "DailyFileSink"
+				},
+				{
+					"dataset": {
+						"referenceName": "dsProcessedWeeklyFile",
+						"type": "DatasetReference"
+					},
+					"name": "WeeklyFileSink"
+				}
+			],
+			"transformations": [
+				{
+					"name": "ProjectReqFields"
+				},
+				{
+					"name": "LkpCountryCode"
+				},
+				{
+					"name": "selectReqFields"
+				},
+				{
+					"name": "SplitDailyFromWeekly"
+				},
+				{
+					"name": "DrvECDCYearWeek",
+					"description": "Create a field with Year Week in the format yyyy-Www ,e.g. 2022-W01"
+				},
+				{
+					"name": "AggDimDate"
+				},
+				{
+					"name": "joinWithdate"
+				},
+				{
+					"name": "PvtWeeklyICUAndHospAdm"
+				},
+				{
+					"name": "PvtDailyICUAndHospAdm"
+				},
+				{
+					"name": "sortByDateAndCountry"
+				},
+				{
+					"name": "ProjectWeekly"
+				},
+				{
+					"name": "ProjectDaily"
+				},
+				{
+					"name": "sortWeekly"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          country as string,",
+				"          indicator as string,",
+				"          date as date 'yyyy-MM-dd',",
+				"          year_week as string,",
+				"          value as double,",
+				"          source as string,",
+				"          url as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false,",
+				"     moveFiles: ['/ecdc','/ecdc/Archive'],",
+				"     rowUrlColumn: 'AzFilePath',",
+				"     dateFormats: ['MM/dd/yyyy'],",
+				"     timestampFormats: ['MM/dd/yyyy HH:mm:ss'],",
+				"     preferredIntegralType: 'integer',",
+				"     preferredFractionalType: 'double') ~> HospAdmSource",
+				"source(output(",
+				"          country as string,",
+				"          country_code_2_digit as string,",
+				"          country_code_3_digit as string,",
+				"          continent as string,",
+				"          population as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> CountryLookupSource",
+				"source(output(",
+				"          date_key as string,",
+				"          date as string,",
+				"          year as string,",
+				"          month as string,",
+				"          day as string,",
+				"          day_name as string,",
+				"          day_of_year as string,",
+				"          week_of_month as string,",
+				"          week_of_year as string,",
+				"          month_name as string,",
+				"          year_month as string,",
+				"          year_week as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> Dimdatesource",
+				"HospAdmSource select(mapColumn(",
+				"          country,",
+				"          indicator,",
+				"          reported_date = date,",
+				"          reported_year_week = year_week,",
+				"          value,",
+				"          source,",
+				"          AzFilePath",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> ProjectReqFields",
+				"ProjectReqFields, CountryLookupSource lookup(ProjectReqFields@country == CountryLookupSource@country,",
+				"     multiple: false,",
+				"     pickup: 'any',",
+				"     broadcast: 'right')~> LkpCountryCode",
+				"LkpCountryCode select(mapColumn(",
+				"          country = ProjectReqFields@country,",
+				"          indicator,",
+				"          reported_date,",
+				"          reported_year_week,",
+				"          value,",
+				"          source,",
+				"          country_code_2_digit,",
+				"          country_code_3_digit,",
+				"          population,",
+				"          AzFilePath",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> selectReqFields",
+				"selectReqFields split(indicator == 'Weekly new hospital admissions per 100k' || indicator == 'Weekly new ICU admissions per 100k',",
+				"     disjoint: false) ~> SplitDailyFromWeekly@(Weekly, Daily)",
+				"Dimdatesource derive(ecdc_year_week = year + '-W'+lpad(week_of_year,2,'0')) ~> DrvECDCYearWeek",
+				"DrvECDCYearWeek aggregate(groupBy(ecdc_year_week = /* instead of using ecdc_year_week derived using derived column we can directly use the expression to group by , thereby skipping the prev step*/year+'-W'+lpad(week_of_year,2,'0')),",
+				"     WkStartDate = min(date),",
+				"          WkEndDate = max(date)) ~> AggDimDate",
+				"SplitDailyFromWeekly@Weekly, AggDimDate join(reported_year_week == ecdc_year_week,",
+				"     joinType:'inner',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'right')~> joinWithdate",
+				"joinWithdate pivot(groupBy(country,",
+				"          country_code_2_digit,",
+				"          country_code_3_digit,",
+				"          source,",
+				"          population,",
+				"          reported_year_week,",
+				"          WkStartDate,",
+				"          WkEndDate),",
+				"     pivotBy(indicator, ['Weekly new hospital admissions per 100k', 'Weekly new ICU admissions per 100k']),",
+				"     count = sum(value),",
+				"     columnNaming: '$V_$N',",
+				"     lateral: true) ~> PvtWeeklyICUAndHospAdm",
+				"SplitDailyFromWeekly@Daily pivot(groupBy(country,",
+				"          population,",
+				"          reported_date,",
+				"          source,",
+				"          country_code_2_digit,",
+				"          country_code_3_digit),",
+				"     pivotBy(indicator, ['Daily hospital occupancy', 'Daily ICU occupancy']),",
+				"     cnt = sum(value),",
+				"     columnNaming: '$V_$N',",
+				"     lateral: true) ~> PvtDailyICUAndHospAdm",
+				"PvtDailyICUAndHospAdm sort(desc(reported_date, true),",
+				"     asc(country, true)) ~> sortByDateAndCountry",
+				"sortWeekly select(mapColumn(",
+				"          country,",
+				"          country_code_2_digit,",
+				"          country_code_3_digit,",
+				"          population,",
+				"          reported_week_start_Date = WkStartDate,",
+				"          reported_week_end_Date = WkEndDate,",
+				"          new_hospital_occupancy_count = {Weekly new hospital admissions per 100k_count},",
+				"          new_icu_occupancy_count = {Weekly new ICU admissions per 100k_count},",
+				"          source",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> ProjectWeekly",
+				"sortByDateAndCountry select(mapColumn(",
+				"          country,",
+				"          country_code_2_digit,",
+				"          country_code_3_digit,",
+				"          population,",
+				"          reported_date,",
+				"          hospital_occupancy_cnt = {Daily hospital occupancy_cnt},",
+				"          ICU_occupancy_cnt = {Daily ICU occupancy_cnt},",
+				"          source",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> ProjectDaily",
+				"PvtWeeklyICUAndHospAdm sort(desc(reported_year_week, true),",
+				"     asc(country, true)) ~> sortWeekly",
+				"ProjectDaily sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          country as string,",
+				"          country_code_2_digit as string,",
+				"          country_code_3_digit as string,",
+				"          population as string,",
+				"          reported_date as string,",
+				"          hospital_occupancy_cnt as string,",
+				"          ICU_occupancy_cnt as string,",
+				"          source as string",
+				"     ),",
+				"     filePattern:'DailyFile-part',",
+				"     truncate: true,",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> DailyFileSink",
+				"ProjectWeekly sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     filePattern:'WeeklyFile-part',",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> WeeklyFileSink"
+			]
+		}
+	}
+}
